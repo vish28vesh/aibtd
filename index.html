@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NeuroScan — Brain Tumor Detection</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0b0f1a;
+      --surface:   #111827;
+      --border:    #1e2d45;
+      --accent:    #38bdf8;
+      --accent2:   #818cf8;
+      --danger:    #f87171;
+      --success:   #34d399;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --card:      #0f172a;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Nav ── */
+    nav {
+      width: 100%;
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(11,15,26,0.85);
+      backdrop-filter: blur(12px);
+      z-index: 10;
+    }
+    .logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.4rem;
+      letter-spacing: 0.01em;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .nav-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 4rem 2rem 2rem;
+      max-width: 640px;
+    }
+    .hero-eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--accent);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .hero h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2rem, 5vw, 3rem);
+      line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+    .hero p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+
+    /* ── Upload Card ── */
+    .upload-section {
+      width: 100%;
+      max-width: 700px;
+      padding: 0 1.5rem 3rem;
+    }
+
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: var(--surface);
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(56,189,248,0.04);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .drop-icon {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 1.2rem;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(56,189,248,0.15), rgba(129,140,248,0.15));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .drop-icon svg { color: var(--accent); }
+    .drop-zone h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .drop-zone p  { font-size: 0.82rem; color: var(--muted); }
+    .drop-zone .formats {
+      margin-top: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      display: inline-block;
+      padding: 0.2rem 0.75rem;
+      border-radius: 999px;
+    }
+
+    /* ── Preview ── */
+    #preview-wrap {
+      display: none;
+      margin-top: 1.5rem;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--card);
+      position: relative;
+    }
+    #preview-wrap img {
+      width: 100%;
+      max-height: 320px;
+      object-fit: contain;
+      display: block;
+      background: #000;
+    }
+    #preview-label {
+      position: absolute;
+      top: 10px; left: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      background: rgba(0,0,0,0.65);
+      color: var(--accent);
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      backdrop-filter: blur(4px);
+    }
+
+    /* ── Analyse Button ── */
+    #analyse-btn {
+      display: none;
+      width: 100%;
+      margin-top: 1.25rem;
+      padding: 0.9rem;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      color: #0b0f1a;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 0.02em;
+    }
+    #analyse-btn:hover  { opacity: 0.9; }
+    #analyse-btn:active { transform: scale(0.99); }
+    #analyse-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Loader ── */
+    .loader-wrap {
+      display: none;
+      text-align: center;
+      padding: 2.5rem;
+      margin-top: 1.5rem;
+    }
+    .pulse-ring {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      border-top-color: var(--accent);
+      border-right-color: var(--accent2);
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-wrap p {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    /* ── Result Card ── */
+    #result-card {
+      display: none;
+      margin-top: 1.5rem;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      overflow: hidden;
+    }
+    .result-header {
+      padding: 1.4rem 1.5rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .result-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 1.2rem;
+    }
+    .result-icon.tumor   { background: rgba(248,113,113,0.15); }
+    .result-icon.normal  { background: rgba(52,211,153,0.15); }
+    .result-header h2    { font-size: 1.15rem; font-weight: 600; }
+    .result-header p     { font-size: 0.8rem; color: var(--muted); margin-top: 0.15rem; }
+
+    .result-body { padding: 1.25rem 1.5rem; }
+
+    /* Confidence bar */
+    .conf-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .conf-bar-bg {
+      height: 7px;
+      border-radius: 999px;
+      background: var(--border);
+      overflow: hidden;
+      margin-bottom: 1.4rem;
+    }
+    .conf-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.8s cubic-bezier(.4,0,.2,1);
+    }
+    .conf-bar-fill.tumor  { background: linear-gradient(90deg, #f87171, #fb923c); }
+    .conf-bar-fill.normal { background: linear-gradient(90deg, #34d399, #38bdf8); }
+
+    /* Probability pills */
+    .prob-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .prob-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+    }
+    .prob-pill .pill-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 0.3rem;
+    }
+    .prob-pill .pill-value {
+      font-size: 1.4rem;
+      font-weight: 600;
+      font-family: 'DM Serif Display', serif;
+    }
+    .pill-value.tumor  { color: var(--danger); }
+    .pill-value.normal { color: var(--success); }
+
+    /* Disclaimer */
+    .disclaimer {
+      margin-top: 1.25rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      background: rgba(100,116,139,0.08);
+      border: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── Error ── */
+    .error-msg {
+      display: none;
+      margin-top: 1.25rem;
+      padding: 0.9rem 1rem;
+      border-radius: 10px;
+      background: rgba(248,113,113,0.08);
+      border: 1px solid rgba(248,113,113,0.3);
+      color: var(--danger);
+      font-size: 0.85rem;
+    }
+
+    /* ── Reset ── */
+    #reset-btn {
+      display: none;
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    #reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: auto;
+      padding: 2rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      width: 100%;
+    }
+    footer span { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">NeuroScan</div>
+  <div class="nav-badge">CNN · Brain MRI · v2.0</div>
+</nav>
+
+<section class="hero">
+  <div class="hero-eyebrow">AI-Powered Diagnostic Tool</div>
+  <h1>Brain Tumor Detection from MRI Scans</h1>
+  <p>Upload a brain MRI image and our convolutional neural network will analyse it for signs of a tumor — in seconds.</p>
+</section>
+
+<section class="upload-section">
+
+  <!-- Drop Zone -->
+  <div class="drop-zone" id="drop-zone">
+    <input type="file" id="file-input" accept=".jpg,.jpeg,.png" />
+    <div class="drop-icon">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <h3>Drop your MRI scan here</h3>
+    <p>or click to browse from your device</p>
+    <div class="formats">JPG · JPEG · PNG · max 10MB</div>
+  </div>
+
+  <!-- Image Preview -->
+  <div id="preview-wrap">
+    <span id="preview-label">Preview</span>
+    <img id="preview-img" src="" alt="MRI Preview" />
+  </div>
+
+  <!-- Analyse Button -->
+  <button id="analyse-btn">Analyse Scan</button>
+
+  <!-- Loader -->
+  <div class="loader-wrap" id="loader">
+    <div class="pulse-ring"></div>
+    <p>Running inference on CNN model...</p>
+  </div>
+
+  <!-- Error -->
+  <div class="error-msg" id="error-msg"></div>
+
+  <!-- Result Card -->
+  <div id="result-card">
+    <div class="result-header">
+      <div class="result-icon" id="result-icon"></div>
+      <div>
+        <h2 id="result-title"></h2>
+        <p id="result-sub"></p>
+      </div>
+    </div>
+    <div class="result-body">
+      <div class="conf-label">
+        <span>Confidence</span>
+        <span id="conf-pct"></span>
+      </div>
+      <div class="conf-bar-bg">
+        <div class="conf-bar-fill" id="conf-bar" style="width:0%"></div>
+      </div>
+      <div class="prob-row">
+        <div class="prob-pill">
+          <div class="pill-label">NO TUMOR</div>
+          <div class="pill-value normal" id="prob-normal">—</div>
+        </div>
+        <div class="prob-pill">
+          <div class="pill-label">TUMOR</div>
+          <div class="pill-value tumor" id="prob-tumor">—</div>
+        </div>
+      </div>
+      <div class="disclaimer">
+        ⚠️ This tool is intended for research and educational purposes only. It is not a substitute for professional medical diagnosis. Always consult a qualified radiologist or physician.
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset -->
+  <button id="reset-btn">↩ Scan another image</button>
+
+</section>
+
+<footer>
+  Built with <span>Flask + TensorFlow</span> · Brain Tumor Detection CNN v2
+</footer>
+
+<script>
+  const dropZone    = document.getElementById('drop-zone');
+  const fileInput   = document.getElementById('file-input');
+  const previewWrap = document.getElementById('preview-wrap');
+  const previewImg  = document.getElementById('preview-img');
+  const analyseBtn  = document.getElementById('analyse-btn');
+  const loader      = document.getElementById('loader');
+  const errorMsg    = document.getElementById('error-msg');
+  const resultCard  = document.getElementById('result-card');
+  const resetBtn    = document.getElementById('reset-btn');
+
+  let selectedFile = null;
+
+  // Drag-over styling
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+
+  function handleFile(file) {
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewImg.src = e.target.result;
+      previewWrap.style.display = 'block';
+      analyseBtn.style.display  = 'block';
+      resultCard.style.display  = 'none';
+      resetBtn.style.display    = 'none';
+      errorMsg.style.display    = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  analyseBtn.addEventListener('click', async () => {
+    if (!selectedFile) return;
+
+    analyseBtn.disabled      = true;
+    analyseBtn.textContent   = 'Analysing...';
+    loader.style.display     = 'block';
+    resultCard.style.display = 'none';
+    errorMsg.style.display   = 'none';
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const res  = await fetch('/predict', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      loader.style.display = 'none';
+
+      if (data.error) {
+        errorMsg.textContent   = '⚠ ' + data.error;
+        errorMsg.style.display = 'block';
+      } else {
+        showResult(data);
+      }
+    } catch (err) {
+      loader.style.display   = 'none';
+      errorMsg.textContent   = '⚠ Connection error. Make sure the Flask server is running.';
+      errorMsg.style.display = 'block';
+    }
+
+    analyseBtn.disabled    = false;
+    analyseBtn.textContent = 'Analyse Scan';
+    resetBtn.style.display = 'block';
+  });
+
+  function showResult(data) {
+    const isTumor = data.is_tumor;
+    const icon    = document.getElementById('result-icon');
+    const title   = document.getElementById('result-title');
+    const sub     = document.getElementById('result-sub');
+    const bar     = document.getElementById('conf-bar');
+    const confPct = document.getElementById('conf-pct');
+
+    icon.innerHTML  = isTumor ? '🔴' : '🟢';
+    icon.className  = 'result-icon ' + (isTumor ? 'tumor' : 'normal');
+    title.textContent = data.label;
+    sub.textContent   = `Confidence: ${data.confidence}%`;
+
+    confPct.textContent       = data.confidence + '%';
+    bar.className             = 'conf-bar-fill ' + (isTumor ? 'tumor' : 'normal');
+    setTimeout(() => { bar.style.width = data.confidence + '%'; }, 50);
+
+    document.getElementById('prob-normal').textContent = data.prob_normal + '%';
+    document.getElementById('prob-tumor').textContent  = data.prob_tumor  + '%';
+
+    resultCard.style.display = 'block';
+  }
+
+  resetBtn.addEventListener('click', () => {
+    selectedFile             = null;
+    fileInput.value          = '';
+    previewWrap.style.display = 'none';
+    analyseBtn.style.display  = 'none';
+    resultCard.style.display  = 'none';
+    errorMsg.style.display    = 'none';
+    resetBtn.style.display    = 'none';
+  });
+</script>
+</body>
+</html>
