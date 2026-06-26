@@ -9,6 +9,7 @@ app = Flask(__name__)
 
 # Config
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 MODEL_PATH = 'brain_tumor_cnn_v2.h5'
 
